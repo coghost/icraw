@@ -28,6 +28,16 @@ from logzero import logger as zlog
 
 from ihelp import helper
 
+__all__ = [
+    'Crawler',
+    'CrawlerError',
+    'CommonCrawler',
+    'CrawlerParamsError',
+    'AsyncCrawler',
+    'ParseHeaderFromFile',
+    'UA',
+]
+
 
 class CrawlerError(Exception):
     pass
@@ -559,7 +569,7 @@ class AsyncCrawler(CommonCrawler):
         for co_ in fk_task_iter:
             await co_
 
-    def run(self, urls, max_num, preset_pth=''):
+    def run(self, urls, max_num, preset_pth='', final_task=True):
         self.result['start_tm'] = helper.unixtime()
         _cwd = os.getcwd()
         try:
@@ -573,6 +583,7 @@ class AsyncCrawler(CommonCrawler):
         sem = asyncio.Semaphore(max_num)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.crawl(tasks, sem))
-        loop.close()
+        if final_task:
+            loop.close()
         self.result['end_tm'] = helper.unixtime()
         os.chdir(_cwd)

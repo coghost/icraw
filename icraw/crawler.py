@@ -359,7 +359,7 @@ class CommonCrawler(Crawler):
             for k, _ in self.bs.items():
                 self.bs[k] = bs.get(k)
 
-    def do_sess_get(self, url):
+    def do_sess_get(self, url, **kwargs):
         """get url by requests synchronized
 
         :param url:
@@ -368,13 +368,13 @@ class CommonCrawler(Crawler):
         :rtype:
         """
         try:
-            res = self.sess.get(url, headers=self.headers['get'], timeout=self.timeout)
+            res = self.sess.get(url, headers=self.headers['get'], timeout=self.timeout, **kwargs)
             if res.status_code == 200:
                 return res.content
         except (requests.ReadTimeout, requests.ConnectTimeout, requests.ConnectionError) as _:
             zlog.error('failed of: {} with error: {}'.format(url, _))
 
-    def load(self, url, use_cache=True, show_log=False):
+    def load(self, url, use_cache=True, show_log=False, **kwargs):
         """fetch the url ``raw info``, use cache first, if no cache hit, try get from Internet
 
         :param url:
@@ -397,7 +397,7 @@ class CommonCrawler(Crawler):
         if not raw:
             if show_log:
                 zlog.debug('from cache got nothing {}'.format(_name))
-            raw = self.do_sess_get(url)
+            raw = self.do_sess_get(url, **kwargs)
             if raw:
                 helper.write_file(raw, _name)
 
@@ -408,13 +408,16 @@ class CommonCrawler(Crawler):
             zlog.debug('[{}:{:>8}] get {}'.format('Cache' if hit else 'Net', len(raw), url))
         return raw
 
-    def bs4get(self, url, use_cache=True, show_log=False, is_json=False):
-        raw = self.load(url, use_cache, show_log)
+    def bs4get(self, url, use_cache=True, show_log=False, is_json=False, with_bs=False, **kwargs):
+        raw = self.load(url, use_cache, show_log, **kwargs)
         if not raw:
             return
         if is_json:
             return json.loads(helper.to_str(raw))
-        return BS(raw, self.bs['parser'], from_encoding=self.bs['encoding'])
+        if with_bs:
+            return BS(raw, self.bs['parser'], from_encoding=self.bs['encoding'])
+        else:
+            return raw
 
     def do_sess_post(self, url, data, headers=None, ret='json'):
         res = self.sess.post(url, data=data, headers=headers or self.headers['post'], timeout=self.timeout)
@@ -460,7 +463,7 @@ class CommonCrawler(Crawler):
         else:
             return raw
 
-    def sync_save(self, res, overwrite=False):
+    def sync_save(self, res, overwrite=False, **kwargs):
         """ save ``res`` to local synchronized
 
         :param res: {'url': '', 'name': ''}
@@ -482,7 +485,7 @@ class CommonCrawler(Crawler):
         if not overwrite and helper.is_file_ok(file_name):
             return True
 
-        cnt = self.do_sess_get(url_)
+        cnt = self.do_sess_get(url_, **kwargs)
         # get res failed
         if not cnt:
             return False

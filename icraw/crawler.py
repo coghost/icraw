@@ -308,10 +308,10 @@ class Crawler(object):
             return _sub_page
 
     @staticmethod
-    def load_from_cache(name):
+    def load_from_cache(name, use_str=True):
         if not helper.is_file_ok(name):
             return ''
-        return helper.read_file(name)
+        return helper.read_file(name, use_str=use_str)
 
     def gen_tasks(self, urls):
         """ according the urls gen {name:'', url:''} dict.
@@ -345,6 +345,22 @@ class Crawler(object):
         else:
             raise CrawlerParamsError('urls should be list/dict')
         return tasks
+
+    def load_cache(self, url, use_cache=True, **kwargs):
+        name = self.map_url_to_cache_id(url)
+        raw = ''
+        data = kwargs.get('data', {})
+        if data:
+            keys = sorted(data.keys())
+            _name = ''
+            for k in keys:
+                _name += '{}_{}'.format(k, data[k])
+            name += f'/{_name}.html'
+
+        if use_cache:
+            raw = self.load_from_cache(name, kwargs.pop('use_str', False))
+
+        return name, raw
 
 
 class CommonCrawler(Crawler):
